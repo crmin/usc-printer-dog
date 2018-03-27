@@ -137,7 +137,7 @@
             // 
             // rfid_serial
             // 
-            this.rfid_serial.PortName = "COM8";
+            this.rfid_serial.PortName = "COM9";
             this.rfid_serial.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(this.rfid_serial_DataReceived);
             // 
             // student_id_label

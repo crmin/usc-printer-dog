@@ -20,7 +20,7 @@ namespace blackscreen
         // ## Constants and Variables ##
         private string FEE_CHECK_API_URL = "https://usc.unist.in/api/fee/check";
         //private string FEE_CHECK_API_URL = "http://localhost:8080/api/fee";
-        private string PRINT_API_URL = "https://usc.unist.in/api/fee/check";
+        private string PRINT_API_URL = "https://usc.unist.in/api/print";
 
         static HttpClient client = new HttpClient();
 
@@ -32,7 +32,7 @@ namespace blackscreen
         private string last_before_rfid_student_id = "R";
         private bool fee_paid = false;
         private string print_str = "R";
-        private int last_print_id = 0;
+        private string last_print_id = "0";
 
         // ## Private Methods ##
         private static DateTime Delay(int MS)
@@ -99,20 +99,22 @@ namespace blackscreen
             new MediaTypeWithQualityHeaderValue("application/json"));
 
             // List data response.
-            string UrlEncodedTitle = HttpContext.Current.Server.UrlEncode(title);
+            //string UrlEncodedTitle = HttpContext.Current.Server.UrlEncode(title);
+            string UrlEncodedTitle = HttpUtility.UrlEncode(title);
             HttpResponseMessage response = client.GetAsync("?number=" + student_id + "&page=" + page_number + "&title=" + UrlEncodedTitle).Result;  // Blocking call!
-            /*
             if (response.IsSuccessStatusCode)
             {
                 string dataStr = response.Content.ReadAsStringAsync().Result.ToString();
                 JObject responseJson = JObject.Parse(dataStr);
                 if (responseJson["result"].ToString().Equals("0")) // success
                 {
-                    last_rfid_name = responseJson["name"].ToString();
-                    return Convert.ToBoolean(responseJson["fee"].ToString());
+                    //this.log_box.Text += '\n' + "?number=" + student_id + "&page=" + page_number + "&title=" + UrlEncodedTitle;
+                    // 인쇄 기록 성공시 할 액션
+                } else
+                {
+                    // 인쇄 로그 기록 실패시 할 액션
                 }
             }
-            */
         }
 
         private static string GetPrintJobs()
@@ -139,12 +141,12 @@ namespace blackscreen
                     Console.WriteLine("Exception getting print jobs: " + ex);
                 }
             }
-            return "-1|-1|";
+            return "-1!-1!";
         }
 
-        private int ParsePrintId(string print_job)
+        private string ParsePrintId(string print_job)
         {
-            return int.Parse(print_job.Split('!')[0]);
+            return print_job.Split('!')[0];
         }
 
         private int ParsePrintPage(string print_job)
@@ -235,10 +237,10 @@ namespace blackscreen
                 last_before_rfid_student_id = last_rfid_student_id;
             }
             string print_job = GetPrintJobs();
-            int print_id = ParsePrintId(print_job);
+            string print_id = ParsePrintId(print_job);
             int print_page = ParsePrintPage(print_job);
             string print_title = ParsePrintTitle(print_job);
-            if (print_id != -1 && print_id != last_print_id)
+            if (print_id != "-1" && print_id.Equals(last_print_id))
             {
                 print_event_send(last_rfid_student_id, print_page, print_title);
             }
