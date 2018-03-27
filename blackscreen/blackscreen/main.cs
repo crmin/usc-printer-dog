@@ -30,9 +30,12 @@ namespace blackscreen
         private string last_rfid_name = "";
         private string last_rfid_student_id = "R";
         private string last_before_rfid_student_id = "R";
+        private string last_checked_rfid_student_id = "";
         private bool fee_paid = false;
         private string print_str = "R";
         private string last_print_id = "0";
+        private int last_print_page = 0;
+        private string last_print_title = "";
 
         // ## Private Methods ##
         private static DateTime Delay(int MS)
@@ -202,7 +205,9 @@ namespace blackscreen
             {
                 if(tick_cnt - last_rfid_tick >= 10)  // 3sec. (30*tick_unit(=1tick/100msec) sec.)
                 {
-                    this.student_id_label.Text = "Plase contact your ID card";
+                    last_checked_rfid_student_id = "";
+                    this.student_id_label.ForeColor = Color.Yellow;
+                    this.student_id_label.Text = "학생증을 리더기에 접촉해주세요";
                     //this.BackColor = Color.Black;
                     this.TopMost = true;
                     this.WindowState = FormWindowState.Maximized;  // 최대화
@@ -213,10 +218,12 @@ namespace blackscreen
                 this.student_id_label.Text = "Student ID: " + print_str;
                 if (last_rfid_student_id.Equals(last_before_rfid_student_id))
                 {
+                    last_checked_rfid_student_id = last_rfid_student_id;
                     if (fee_paid)  // 학생회비를 납부한 상태라면
                     {
                         // TODO: 화면 잠금 풀기 -> 이건 어떻게 할지 생각해보자 아마 TopMost=false 하고 최소화 하도록 하면 되지 않을까
-                        print_str = last_rfid_student_id + "\n안녕하세요, " + last_rfid_name + "님\nHello "+ last_rfid_name;
+                        print_str = last_rfid_student_id + "\n안녕하세요, " + last_rfid_name + "님";
+                        this.student_id_label.ForeColor = Color.PaleGreen;
 
                         if (tick_cnt - last_rfid_tick >= 10)
                         {
@@ -227,7 +234,8 @@ namespace blackscreen
                     }
                     else
                     {
-                        print_str = last_rfid_student_id + "\n학생회비를 납부하지 않으셨습니다\nYou did not paid student dues";
+                        print_str = last_rfid_student_id + "\n학생회비를 납부하지 않으셨습니다";
+                        this.student_id_label.ForeColor = Color.HotPink;
                     }
                 }
                 else
@@ -240,11 +248,21 @@ namespace blackscreen
             string print_id = ParsePrintId(print_job);
             int print_page = ParsePrintPage(print_job);
             string print_title = ParsePrintTitle(print_job);
-            if (print_id != "-1" && print_id.Equals(last_print_id))
+            /*
+            if(print_id.Equals(last_print_id))
+            if (!print_id.Equals("-1") && !print_id.Equals(last_print_id))
             {
                 print_event_send(last_rfid_student_id, print_page, print_title);
             }
+            */
+            if (print_id.Equals("-1") && !print_id.Equals(last_print_id) && last_checked_rfid_student_id.Length>1)
+            {
+                //print_event_send(last_rfid_student_id, last_print_page, print_title);
+                print_event_send(last_checked_rfid_student_id, last_print_page, last_print_title);
+            }
             last_print_id = print_id;
+            last_print_page = print_page;
+            last_print_title = print_title;
         }
 
         private void rfid_serial_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
