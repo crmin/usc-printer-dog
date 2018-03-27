@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Management;
+using System.Web;
 using Newtonsoft.Json.Linq;
 
 namespace blackscreen
@@ -83,7 +84,7 @@ namespace blackscreen
             return false;
         }
 
-        private void print_event_send(string student_id, int page_number)
+        private void print_event_send(string student_id, int page_number, string title)
         {
             /*
              * Print Event가 캡쳐되면 호출
@@ -98,7 +99,8 @@ namespace blackscreen
             new MediaTypeWithQualityHeaderValue("application/json"));
 
             // List data response.
-            HttpResponseMessage response = client.GetAsync("?number=" + student_id + "&page=" + page_number).Result;  // Blocking call!
+            string UrlEncodedTitle = HttpContext.Current.Server.UrlEncode(title);
+            HttpResponseMessage response = client.GetAsync("?number=" + student_id + "&page=" + page_number + "&title=" + UrlEncodedTitle).Result;  // Blocking call!
             /*
             if (response.IsSuccessStatusCode)
             {
@@ -227,8 +229,14 @@ namespace blackscreen
                 }
                 last_before_rfid_student_id = last_rfid_student_id;
             }
-            int print_job = GetPrintJobs();
-
+            string print_job = GetPrintJobs();
+            int print_id = ParsePrintId(print_job);
+            int print_page = ParsePrintPage(print_job);
+            if(print_id != last_print_id)
+            {
+                print_event_send(last_rfid_student_id, print_page);
+            }
+            last_print_id = print_id;
         }
 
         private void rfid_serial_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
