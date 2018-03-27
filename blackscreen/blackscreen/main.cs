@@ -173,7 +173,11 @@ namespace blackscreen
         {
             foreach (COMPortInfo comPort in COMPortInfo.GetCOMPortsInfo())
             {
-                if (comPort.Description.Split('(')[0].Equals("USB-SERIAL CH340"))
+                string comPortDesc = comPort.Description.Split('(')[0];
+                if (
+                    comPortDesc.Equals("USB-SERIAL CH340") ||
+                    comPortDesc.Equals("USB Serial Port")
+                    )
                 {
                     this.rfid_serial.PortName = comPort.Name;
                 }
