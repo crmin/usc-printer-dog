@@ -139,7 +139,7 @@ namespace blackscreen
                     Console.WriteLine("Exception getting print jobs: " + ex);
                 }
             }
-            return "|";
+            return "-1|-1|";
         }
 
         private int ParsePrintId(string print_job)
@@ -238,7 +238,7 @@ namespace blackscreen
             int print_id = ParsePrintId(print_job);
             int print_page = ParsePrintPage(print_job);
             string print_title = ParsePrintTitle(print_job);
-            if (print_id != last_print_id)
+            if (print_id != -1 && print_id != last_print_id)
             {
                 print_event_send(last_rfid_student_id, print_page, print_title);
             }
