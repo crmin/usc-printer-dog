@@ -31,6 +31,7 @@ namespace blackscreen
         private string last_before_rfid_student_id = "R";
         private bool fee_paid = false;
         private string print_str = "R";
+        private int last_print_id = 0;
 
         // ## Private Methods ##
         private static DateTime Delay(int MS)
@@ -112,7 +113,7 @@ namespace blackscreen
             */
         }
 
-        public static int GetPrintJobs()
+        private static string GetPrintJobs()
         {
             string searchQuery = "SELECT * FROM Win32_PrintJob";
             ManagementObjectSearcher searchPrintJobs = new ManagementObjectSearcher(searchQuery);
@@ -125,18 +126,28 @@ namespace blackscreen
                     string color = prntJob.Properties["Color"].Value.ToString();
                     string host = prntJob.Properties["HostPrintQueue"].Value.ToString();
                     string owner = prntJob.Properties["Owner"].Value.ToString();
-                    int id = int.Parse(prntJob.Properties["JobId"].Value.ToString());
-                    int pages = int.Parse(prntJob.Properties["TotalPages"].Value.ToString());
+                    string id = prntJob.Properties["JobId"].Value.ToString();
+                    string pages = prntJob.Properties["TotalPages"].Value.ToString();
 
                     //Console.WriteLine("{0} Document '{1}', pages {2} {3}, sent by {4}\\{5}", id, document, pages, color, host, owner);
-                    return pages;
+                    return id+'|'+pages;
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine("Exception getting print jobs: " + ex);
                 }
             }
-            return 0;
+            return "|";
+        }
+
+        private int ParsePrintId(string print_job)
+        {
+            return int.Parse(print_job.Split('|')[0]);
+        }
+
+        private int ParsePrintPage(string print_job)
+        {
+            return int.Parse(print_job.Split('|')[1]);
         }
 
 
