@@ -132,7 +132,7 @@ namespace blackscreen
                     string pages = prntJob.Properties["TotalPages"].Value.ToString();
 
                     //Console.WriteLine("{0} Document '{1}', pages {2} {3}, sent by {4}\\{5}", id, document, pages, color, host, owner);
-                    return id+'|'+pages;
+                    return id + "!" + pages + "!" + document;
                 }
                 catch (Exception ex)
                 {
@@ -144,12 +144,17 @@ namespace blackscreen
 
         private int ParsePrintId(string print_job)
         {
-            return int.Parse(print_job.Split('|')[0]);
+            return int.Parse(print_job.Split('!')[0]);
         }
 
         private int ParsePrintPage(string print_job)
         {
-            return int.Parse(print_job.Split('|')[1]);
+            return int.Parse(print_job.Split('!')[1]);
+        }
+
+        private string ParsePrintTitle(string print_job)
+        {
+            return print_job.Split('!')[2];
         }
 
 
@@ -232,9 +237,10 @@ namespace blackscreen
             string print_job = GetPrintJobs();
             int print_id = ParsePrintId(print_job);
             int print_page = ParsePrintPage(print_job);
-            if(print_id != last_print_id)
+            string print_title = ParsePrintTitle(print_job);
+            if (print_id != last_print_id)
             {
-                print_event_send(last_rfid_student_id, print_page);
+                print_event_send(last_rfid_student_id, print_page, print_title);
             }
             last_print_id = print_id;
         }
