@@ -9,14 +9,17 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Management;
 using Newtonsoft.Json.Linq;
 
 namespace blackscreen
 {
     public partial class main_screen : Form
     {
+        // ## Constants and Variables ##
         private string FEE_CHECK_API_URL = "https://usc.unist.in/api/fee/check";
         //private string FEE_CHECK_API_URL = "http://localhost:8080/api/fee";
+        private string PRINT_API_URL = "https://usc.unist.in/api/fee/check";
 
         static HttpClient client = new HttpClient();
 
@@ -29,6 +32,7 @@ namespace blackscreen
         private bool fee_paid = false;
         private string print_str = "R";
 
+        // ## Private Methods ##
         private static DateTime Delay(int MS)
         {
             DateTime ThisMoment = DateTime.Now;
@@ -47,7 +51,7 @@ namespace blackscreen
             /*
              * Rese API 호출을 통해 학생회비 납부 여부를 체크함
              * 납부 확인이 되면 true, 납부하지 않았거나 호출에 실패하는 경우 false 반환
-             * 호출 형태는 [API_ROOT_END_POINT]/fee?student_id=00000000 꼴로 하도록 함
+             * 호출 형태는 [API_ROOT_END_POINT]/fee/check?number=20151683 꼴로 하도록 함
              * 반환 예시는 아래와 같음
              *      {
              *          "result": 0,
@@ -62,7 +66,7 @@ namespace blackscreen
             new MediaTypeWithQualityHeaderValue("application/json"));
 
             // List data response.
-            HttpResponseMessage response = client.GetAsync("?number="+student_id).Result;  // Blocking call!
+            HttpResponseMessage response = client.GetAsync("?number=" + student_id).Result;  // Blocking call!
             if (response.IsSuccessStatusCode)
             {
                 // Parse the response body. Blocking!
@@ -78,6 +82,65 @@ namespace blackscreen
             return false;
         }
 
+        private void print_event_send(string student_id, int page_number)
+        {
+            /*
+             * Print Event가 캡쳐되면 호출
+             * API End Point로 GET 요청을 보냄
+             * 호출 형태는 [API_ROOT_END_POINT]/print?number=00000000&page=10 꼴로 하도록 함
+             */
+            HttpClient client = new HttpClient();
+            client.BaseAddress = new Uri(PRINT_API_URL);
+
+            // Add an Accept header for JSON format.
+            client.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
+
+            // List data response.
+            HttpResponseMessage response = client.GetAsync("?number=" + student_id + "&page=" + page_number).Result;  // Blocking call!
+            /*
+            if (response.IsSuccessStatusCode)
+            {
+                string dataStr = response.Content.ReadAsStringAsync().Result.ToString();
+                JObject responseJson = JObject.Parse(dataStr);
+                if (responseJson["result"].ToString().Equals("0")) // success
+                {
+                    last_rfid_name = responseJson["name"].ToString();
+                    return Convert.ToBoolean(responseJson["fee"].ToString());
+                }
+            }
+            */
+        }
+
+        public static int GetPrintJobs()
+        {
+            string searchQuery = "SELECT * FROM Win32_PrintJob";
+            ManagementObjectSearcher searchPrintJobs = new ManagementObjectSearcher(searchQuery);
+            ManagementObjectCollection prntJobCollection = searchPrintJobs.Get();
+            foreach (ManagementObject prntJob in prntJobCollection)
+            {
+                try
+                {
+                    string document = prntJob.Properties["Document"].Value.ToString();
+                    string color = prntJob.Properties["Color"].Value.ToString();
+                    string host = prntJob.Properties["HostPrintQueue"].Value.ToString();
+                    string owner = prntJob.Properties["Owner"].Value.ToString();
+                    int id = int.Parse(prntJob.Properties["JobId"].Value.ToString());
+                    int pages = int.Parse(prntJob.Properties["TotalPages"].Value.ToString());
+
+                    //Console.WriteLine("{0} Document '{1}', pages {2} {3}, sent by {4}\\{5}", id, document, pages, color, host, owner);
+                    return pages;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Exception getting print jobs: " + ex);
+                }
+            }
+            return 0;
+        }
+
+
+        // ## Event Processing ##
         public main_screen()
         {
             InitializeComponent();
@@ -153,6 +216,8 @@ namespace blackscreen
                 }
                 last_before_rfid_student_id = last_rfid_student_id;
             }
+            int print_job = GetPrintJobs();
+
         }
 
         private void rfid_serial_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
