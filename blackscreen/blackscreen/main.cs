@@ -15,16 +15,32 @@ namespace blackscreen
 {
     public partial class main_screen : Form
     {
-        //private string FEE_CHECK_API_URL = "https://api.unist.in/";
-        private string FEE_CHECK_API_URL = "http://localhost:8080/api/fee";
+        private string FEE_CHECK_API_URL = "https://usc.unist.in/api/fee/check";
+        //private string FEE_CHECK_API_URL = "http://localhost:8080/api/fee";
 
         static HttpClient client = new HttpClient();
 
         private bool alt_f4_pressed = false;
         private long tick_cnt = 0;
         private long last_rfid_tick = 0;
+        private string last_rfid_name = "";
         private string last_rfid_student_id = "R";
+        private string last_before_rfid_student_id = "R";
+        private bool fee_paid = false;
         private string print_str = "R";
+
+        private static DateTime Delay(int MS)
+        {
+            DateTime ThisMoment = DateTime.Now;
+            TimeSpan duration = new TimeSpan(0, 0, 0, 0, MS);
+            DateTime AfterWards = ThisMoment.Add(duration);
+            while (AfterWards >= ThisMoment)
+            {
+                System.Windows.Forms.Application.DoEvents();
+                ThisMoment = DateTime.Now;
+            }
+            return DateTime.Now;
+        }
 
         private bool is_paid(string student_id)
         {
@@ -46,7 +62,7 @@ namespace blackscreen
             new MediaTypeWithQualityHeaderValue("application/json"));
 
             // List data response.
-            HttpResponseMessage response = client.GetAsync("?student_id="+student_id).Result;  // Blocking call!
+            HttpResponseMessage response = client.GetAsync("?number="+student_id).Result;  // Blocking call!
             if (response.IsSuccessStatusCode)
             {
                 // Parse the response body. Blocking!
@@ -55,7 +71,8 @@ namespace blackscreen
                 JObject responseJson = JObject.Parse(dataStr);
                 if (responseJson["result"].ToString().Equals("0")) // success
                 {
-                    return Convert.ToBoolean(responseJson["is_paid"].ToString());
+                    last_rfid_name = responseJson["name"].ToString();
+                    return Convert.ToBoolean(responseJson["fee"].ToString());
                 }
             }
             return false;
@@ -100,25 +117,41 @@ namespace blackscreen
             tick_cnt += 1;
             if (last_rfid_student_id.Equals("R"))
             {
-                this.student_id_label.Text = "Plase contact your ID card";
-                //this.BackColor = Color.Black;
-                this.TopMost = true;
-                this.WindowState = FormWindowState.Maximized;  // 최대화
+                if(tick_cnt - last_rfid_tick >= 10)  // 3sec. (30*tick_unit(=1tick/100msec) sec.)
+                {
+                    this.student_id_label.Text = "Plase contact your ID card";
+                    //this.BackColor = Color.Black;
+                    this.TopMost = true;
+                    this.WindowState = FormWindowState.Maximized;  // 최대화
+                }
             }
             else
             {
                 this.student_id_label.Text = "Student ID: " + print_str;
-                if (is_paid(last_rfid_student_id))  // 학생회비를 납부한 상태라면
+                if (last_rfid_student_id.Equals(last_before_rfid_student_id))
                 {
-                    // TODO: 화면 잠금 풀기 -> 이건 어떻게 할지 생각해보자 아마 TopMost=false 하고 최소화 하도록 하면 되지 않을까
-                    this.TopMost = false;
-                    //this.BackColor = Color.Blue;
-                    this.WindowState = FormWindowState.Minimized;  // 최소화
+                    if (fee_paid)  // 학생회비를 납부한 상태라면
+                    {
+                        // TODO: 화면 잠금 풀기 -> 이건 어떻게 할지 생각해보자 아마 TopMost=false 하고 최소화 하도록 하면 되지 않을까
+                        print_str = last_rfid_student_id + "\n안녕하세요, " + last_rfid_name + "님\nHello "+ last_rfid_name;
+
+                        if (tick_cnt - last_rfid_tick >= 10)
+                        {
+                            this.TopMost = false;
+                            //this.BackColor = Color.Blue;
+                            this.WindowState = FormWindowState.Minimized;  // 최소화
+                        }
+                    }
+                    else
+                    {
+                        print_str = last_rfid_student_id + "\n학생회비를 납부하지 않으셨습니다\nYou did not paid student dues";
+                    }
                 }
                 else
                 {
-                    print_str = last_rfid_student_id + "\n학생회비를 납부하지 않으셨습니다\nYou did not paid student dues";
+                    fee_paid = is_paid(last_rfid_student_id);
                 }
+                last_before_rfid_student_id = last_rfid_student_id;
             }
         }
 
