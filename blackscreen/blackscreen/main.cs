@@ -37,6 +37,16 @@ namespace blackscreen
         private int last_print_page = 0;
         private string last_print_title = "";
 
+        /*
+         * Key: abs path of file
+         * Value: now_tick, delete_tick 저장, 
+         * fileRemoverTimer의 매 틱마다 value dict의 now_tick 값을 증가시키고
+         * value가 delete_tick보다 클 경우 삭제
+         * Value의 delete_tick은 해당 파일이 처음 추적될 때 저장되며, 
+         * 5*6 (5min, Desktop, Downloads, 카카오톡 받은 파일) 또는 10*6 (10min, Scan)의 값을 가짐
+         */
+        private Dictionary<string, Dictionary<string, int>> fileTrackingCounter = new Dictionary<string, Dictionary<string, int>>();
+
         // ## Private Methods ##
         private static DateTime Delay(int MS)
         {
@@ -281,6 +291,89 @@ namespace blackscreen
             last_rfid_tick = tick_cnt;
             last_rfid_student_id = this.rfid_serial.ReadLine().Trim();
             print_str = last_rfid_student_id;
+        }
+
+        private void file_remove_timer_Tick(object sender, EventArgs e)
+        {
+            // Desktop - 5분
+            String path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop).ToString();
+            System.IO.DirectoryInfo di = new System.IO.DirectoryInfo(path);
+            String[] whitetList = { "desktop.ini", "scan", "다운로드.lnk", "카카오톡 받은 파일.lnk" };
+            foreach (System.IO.FileInfo file in di.GetFiles())
+            {
+                String fileName = file.FullName;
+                foreach (String whiteListElement in whitetList)
+                {
+                    if (fileName.EndsWith(whiteListElement))
+                        continue;
+                }
+                if(!fileTrackingCounter.ContainsKey(fileName))
+                {
+                    fileTrackingCounter[fileName] = new Dictionary<string, int>();
+                    fileTrackingCounter[fileName]["now_tick"] = 0;
+                    fileTrackingCounter[fileName]["delete_tick"] = 5 * 6;
+                }
+                fileTrackingCounter[fileName]["now_tick"]++;
+            }
+            
+            // Downloads - 5분
+            path = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).ToString() + "\\Downloads";
+            di = new System.IO.DirectoryInfo(path);
+            foreach (System.IO.FileInfo file in di.GetFiles())
+            {
+                String fileName = file.FullName;
+                if (!fileTrackingCounter.ContainsKey(fileName))
+                {
+                    fileTrackingCounter[fileName] = new Dictionary<string, int>();
+                    fileTrackingCounter[fileName]["now_tick"] = 0;
+                    fileTrackingCounter[fileName]["delete_tick"] = 5 * 6;
+                }
+                fileTrackingCounter[fileName]["now_tick"]++;
+            }
+
+            // 카카오톡 받은 파일 - 5분
+            path = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments).ToString() + "\\카카오톡 받은 파일";
+            di = new System.IO.DirectoryInfo(path);
+            foreach (System.IO.FileInfo file in di.GetFiles())
+            {
+                String fileName = file.FullName;
+                if (!fileTrackingCounter.ContainsKey(fileName))
+                {
+                    fileTrackingCounter[fileName] = new Dictionary<string, int>();
+                    fileTrackingCounter[fileName]["now_tick"] = 0;
+                    fileTrackingCounter[fileName]["delete_tick"] = 5 * 6;
+                }
+                fileTrackingCounter[fileName]["now_tick"]++;
+            }
+
+            // Scan - 10분
+            path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop).ToString() + "\\scan";
+            di = new System.IO.DirectoryInfo(path);
+            foreach (System.IO.FileInfo file in di.GetFiles())
+            {
+                String fileName = file.FullName;
+                if (!fileTrackingCounter.ContainsKey(fileName))
+                {
+                    fileTrackingCounter[fileName] = new Dictionary<string, int>();
+                    fileTrackingCounter[fileName]["now_tick"] = 0;
+                    fileTrackingCounter[fileName]["delete_tick"] = 10 * 6;
+                }
+                fileTrackingCounter[fileName]["now_tick"]++;
+            }
+
+            // 휴지통 비우기 - 작업 스케줄러 이용
+
+            // now_tick이 delete_tick을 초과하는 경우 삭제하고 dictionary에서도 제외
+            foreach (KeyValuePair<string, Dictionary<string, int>> fileDict in fileTrackingCounter)
+            {
+                string fileName = fileDict.Key;
+                int nowTick = fileDict.Value["now_tick"];
+                int deleteTick = fileDict.Value["delete_tick"];
+                if (nowTick > deleteTick)
+                {
+                    System.IO.File.Delete(fileName);
+                }
+            }
         }
     }
 

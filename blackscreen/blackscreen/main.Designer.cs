@@ -37,6 +37,7 @@
             this.rfid_serial = new System.IO.Ports.SerialPort(this.components);
             this.student_id_label = new System.Windows.Forms.Label();
             this.label10 = new System.Windows.Forms.Label();
+            this.file_remove_timer = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
             // 
             // label1
@@ -110,6 +111,12 @@
             this.label10.TabIndex = 9;
             this.label10.Text = "4. 버그로 인해 카드 인식은 되지만 창이 안닫히는 경우가 있습니다. 이때는 카드를 다시 접촉해주세요";
             // 
+            // file_remove_timer
+            // 
+            this.file_remove_timer.Enabled = true;
+            this.file_remove_timer.Interval = 10000;
+            this.file_remove_timer.Tick += new System.EventHandler(this.file_remove_timer_Tick);
+            // 
             // main_screen
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
@@ -149,6 +156,7 @@
         private System.IO.Ports.SerialPort rfid_serial;
         private System.Windows.Forms.Label student_id_label;
         private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.Timer file_remove_timer;
     }
 }
 
