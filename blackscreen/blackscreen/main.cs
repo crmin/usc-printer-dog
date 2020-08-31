@@ -92,10 +92,12 @@ namespace blackscreen
                 JObject responseJson = JObject.Parse(dataStr);
                 if (responseJson["result"].ToString().Equals("0")) // success
                 {
-                    FileStream fs = new FileStream(@"C:\print_scan.log", FileMode.Append, FileAccess.Write);
+                    string myDocumentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments).ToString();
+                    string logPath = Path.Combine(myDocumentsPath, "print_scan.log");
+                    FileStream fs = new FileStream(logPath, FileMode.Append, FileAccess.Write);
                     StreamWriter sw = new StreamWriter(fs, System.Text.Encoding.UTF8);
                     last_rfid_name = responseJson["name"].ToString();
-                    string currentTime = DateTime.Now.ToString("HH:mm:ss tt");
+                    string currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss tt");
                     sw.WriteLine(currentTime + '\t' + student_id + '\t' + last_rfid_name);
                     sw.Flush();
                     sw.Close();
