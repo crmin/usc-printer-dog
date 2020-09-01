@@ -243,6 +243,7 @@ namespace blackscreen
                     //this.BackColor = Color.Black;
                     this.TopMost = true;
                     this.WindowState = FormWindowState.Maximized;  // 최대화
+                    last_before_rfid_student_id = "R";
                 }
             }
             else
